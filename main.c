@@ -51,7 +51,7 @@
 #include "nrf_uarte.h"
 #endif
 
-#ifdef NRF52840_XXAA
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA))
 #include "app_usbd_core.h"
 #include "app_usbd.h"
 #include "app_usbd_string_desc.h"
@@ -97,7 +97,7 @@
 #endif
 #else
 #if MODULE_BUILTIN
-#define DEVICE_NAME                     "VESC 52832 BUILTIN"
+#define DEVICE_NAME                     "FOC SPIN BUILTIN"
 #else
 #define DEVICE_NAME                     "VESC 52832 UART"
 #endif
@@ -133,7 +133,7 @@ static pm_peer_id_t m_peer_to_be_deleted = PM_PEER_ID_INVALID;
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-#ifdef NRF52840_XXAA
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA))
 #define UART_TX_BUF_SIZE                16384
 #define UART_RX_BUF_SIZE                16384
 #else
@@ -180,12 +180,14 @@ static pm_peer_id_t m_peer_to_be_deleted = PM_PEER_ID_INVALID;
 #endif
 #else
 #if MODULE_BUILTIN
-#define UART_RX							6
-#define UART_TX							7
-#define UART_TX_DISABLED				25
-#define EN_DEFAULT						1
+#define UART_RX							29 //NINA-B400 GPIO23 = P0.29 = 29
+#define UART_TX							37 //NINA-B400 GPIO22 = P1.05 = 32 + 5 = 37
+#define UART_TX_DISABLED				30
 #define LED_PIN							8
-#define LED_PIN2_INV					5
+#undef LED_ON
+#undef LED_OFF
+#define LED_ON()
+#define LED_OFF()
 #else
 #define UART_RX							7
 #define UART_TX							6
@@ -249,7 +251,7 @@ static void start_advertising(void);
 static void go_to_sleep(void);
 #endif
 
-#if defined(NRF52840_XXAA) && USE_USB
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA)) && USE_USB
 static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 		app_usbd_cdc_acm_user_event_t event);
 
@@ -447,7 +449,8 @@ static void services_init(void) {
 	// Initialize NUS.
 	memset(&nus_init, 0, sizeof(nus_init));
 	nus_init.data_handler = nus_data_handler;
-	ble_nus_init(&m_nus, &nus_init, m_config.pin_set);
+	//ble_nus_init(&m_nus, &nus_init, m_config.pin_set);
+	ble_nus_init(&m_nus, &nus_init);
 }
 
 static void conn_params_error_handler(uint32_t nrf_error) {
@@ -796,7 +799,7 @@ void ble_printf(const char* format, ...) {
 }
 
 void cdc_printf(const char* format, ...) {
-#if defined(NRF52840_XXAA) && USE_USB
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA)) && USE_USB
 	va_list arg;
 	va_start (arg, format);
 	int len;
@@ -941,7 +944,7 @@ int main(void) {
 	LED_OFF();
 #endif
 
-#if defined(NRF52840_XXAA) && USE_USB
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA)) && USE_USB
 	nrf_drv_clock_init();
 
 	static const app_usbd_config_t usbd_config = {
@@ -989,14 +992,14 @@ int main(void) {
 	esb_timeslot_init(esb_timeslot_data_handler);
 	esb_timeslot_sd_start();
 
-#if defined(NRF52840_XXAA) && USE_USB
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA)) && USE_USB
 	app_usbd_power_events_enable();
 #endif
 
 	start_advertising();
 
 	for (;;) {
-#if defined(NRF52840_XXAA) && USE_USB
+#if (defined(NRF52840_XXAA) || defined(NRF52833_XXAA)) && USE_USB
 		while (app_usbd_event_queue_process()){}
 #endif
 

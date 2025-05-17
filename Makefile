@@ -1,38 +1,56 @@
-# Compile for NRF52832, otherwise for NRF52840
-IS_52832 ?= 0
+# Compile for NRF528xx
+NRF52832 = 0
+NRF52833 = 1
+NRF52840 = 2
+IS_NRF52 ?= $(NRF52833)
 
-PROJECT_NAME     := vesc_ble_uart
+PROJECT_NAME     := ble_bridge
 OUTPUT_DIRECTORY := _build
 
-ifeq ($(IS_52832),1)
+ifeq ($(IS_NRF52),$(NRF52832))
 TARGETS          := nrf52832_xxaa
+else ifeq ($(IS_NRF52),$(NRF52833))
+TARGETS          := nrf52833_xxaa
 else
 TARGETS          := nrf52840_xxaa
 endif
 
 # So that eclipse can use the build output for indexing.
-VERBOSE=1
+VERBOSE=0
 
 CFLAGS += $(build_args)
 
 # Path to the NRF52 SDK. Change if needed.
-SDK_ROOT := /home/benjamin/Dokument/nrf52/nRF5_SDK_15.3.0_59ac345
+SDK_ROOT := ../nRF5_SDK_17.1.0_ddde560
 
 TARGET_PATH := $(OUTPUT_DIRECTORY)/$(TARGETS).hex
 
-ifeq ($(IS_52832),1)
+ifeq ($(IS_NRF52),$(NRF52832))
 $(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := ld_sd_52832.ld
-SD_PATH := $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_6.1.1_softdevice.hex
+SD_PATH := $(SDK_ROOT)/components/softdevice/s132/hex/s132_nrf52_7.2.0_softdevice.hex
+else ifeq ($(IS_NRF52),$(NRF52833))
+$(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := ld_sd_52833_s140.ld
+SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.2.0_softdevice.hex
 else
 $(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := ld_sd_52840.ld
-SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex
+SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.2.0_softdevice.hex
 endif
 
 # Source files
-ifeq ($(IS_52832),1)
+ifeq ($(IS_NRF52),$(NRF52832))
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52.c 
+else ifeq ($(IS_NRF52),$(NRF52833))
+SRC_FILES += \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52833.S \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52833.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
+  $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_core.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_serial_num.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c
 else
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
@@ -58,9 +76,10 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
   $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
-  $(SDK_ROOT)/components/libraries/timer/app_timer.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer2.c \
   $(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+  $(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
   $(SDK_ROOT)/components/libraries/hardfault/nrf52/handler/hardfault_handler_gcc.c \
   $(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
@@ -78,6 +97,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
   $(SDK_ROOT)/components/libraries/experimental_section_vars/nrf_section_iter.c \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
+  $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
   $(SDK_ROOT)/components/libraries/uart/retarget.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
@@ -102,6 +122,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/common/ble_conn_state.c \
   $(SDK_ROOT)/components/ble/ble_link_ctx_manager/ble_link_ctx_manager.c \
   $(SDK_ROOT)/components/ble/common/ble_srv_common.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_nus/ble_nus.c \
   $(SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
   $(SDK_ROOT)/external/utf_converter/utf.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_chacha_poly_aead.c \
@@ -114,9 +135,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twi.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
-  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_twi.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_rng.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rng.c \
   $(SDK_ROOT)/components/libraries/queue/nrf_queue.c \
@@ -140,13 +158,11 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_rng.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecc.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdh.c \
+  $(SDK_ROOT)/components/proprietary_rf/esb/nrf_esb.c \
   main.c \
   buffer.c \
   crc.c \
   packet.c \
-  i2c_bb.c \
-  sdk_mod/nrf_esb.c \
-  sdk_mod/ble_nus.c \
   esb_timeslot.c \
   storage.c
 
@@ -157,6 +173,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/nfc/t4t_parser/hl_detection_procedure \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias_c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_nus \
   $(SDK_ROOT)/components/libraries/pwm \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
   $(SDK_ROOT)/components/libraries/usbd/class/hid/generic \
@@ -299,13 +316,13 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/crypto/backend/cifra \
   $(SDK_ROOT)/components/libraries/crypto \
   $(SDK_ROOT)/components/libraries/stack_info \
+  $(SDK_ROOT)/components/proprietary_rf/esb \
   $(SDK_ROOT)/external/micro-ecc/micro-ecc \
   . \
-  sdk_mod \
 
 # Libraries common to all targets
 LIB_FILES += \
-  $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_2.0.7.a
+  $(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_3.0.8.a
 
 # Optimization flags
 OPT = -O3 -g3
@@ -314,23 +331,30 @@ OPT = -O3 -g3
 
 # C flags common to all targets
 CFLAGS += $(OPT)
-ifeq ($(IS_52832),1)
-CFLAGS += -DBOARD_PCA10028
-CFLAGS += -DS130
+ifeq ($(IS_NRF52),$(NRF52832))
+CFLAGS += -DBOARD_PCA10040
+CFLAGS += -DS132
 CFLAGS += -DNRF52832_XXAA
+else ifeq ($(IS_NRF52),$(NRF52833))
+CFLAGS += -DBOARD_PCA10100
+CFLAGS += -DS140
+CFLAGS += -DNRF52833_XXAA
 else
 CFLAGS += -DBOARD_PCA10056
 CFLAGS += -DS140
 CFLAGS += -DNRF52840_XXAA
 endif
-CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+#CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+CFLAGS += -DAPP_TIMER_V2
+CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF_APP_VERSION=0x00000001
 CFLAGS += -DNRF_APP_VERSION_ADDR=0x1D000
 CFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
-CFLAGS += -DNRF_SD_BLE_API_VERSION=6
+CFLAGS += -DNRF_SD_BLE_API_VERSION=7
 CFLAGS += -DSOFTDEVICE_PRESENT
-CFLAGS += -DSWI_DISABLE0
+CFLAGS += -DESB_PRESENT
+#CFLAGS += -DSWI_DISABLE0
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -Wall# -Werror
@@ -344,10 +368,14 @@ CFLAGS += -std=gnu99 -D_GNU_SOURCE
 CXXFLAGS += $(OPT)
 
 # Assembler flags common to all targets
-ifeq ($(IS_52832),1)
-ASMFLAGS += -DBOARD_PCA10028
-ASMFLAGS += -DS130
+ifeq ($(IS_NRF52),$(NRF52832))
+ASMFLAGS += -DBOARD_PCA10040
+ASMFLAGS += -DS132
 ASMFLAGS += -DNRF52832_XXAA
+else ifeq ($(IS_NRF52),$(NRF52833))
+ASMFLAGS += -DBOARD_PCA10100
+ASMFLAGS += -DS140
+ASMFLAGS += -DNRF52833_XXAA
 else
 ASMFLAGS += -DBOARD_PCA10056
 ASMFLAGS += -DS140
@@ -357,14 +385,17 @@ ASMFLAGS += -g3
 ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
-ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
+#ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
+ASMFLAGS += -DAPP_TIMER_V2
+ASMFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -DNRF_APP_VERSION=0x00000001
 ASMFLAGS += -DNRF_APP_VERSION_ADDR=0x1D000
 ASMFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
-ASMFLAGS += -DNRF_SD_BLE_API_VERSION=6
+ASMFLAGS += -DNRF_SD_BLE_API_VERSION=7
 ASMFLAGS += -DSOFTDEVICE_PRESENT
-ASMFLAGS += -DSWI_DISABLE0
+ASMFLAGS += -DESB_PRESENT
+#ASMFLAGS += -DSWI_DISABLE0
 
 # Linker flags
 LDFLAGS += $(OPT)

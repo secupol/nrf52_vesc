@@ -38,19 +38,19 @@ static fds_record_t const m_config_record = {
 static void fds_evt_handler(fds_evt_t const * p_evt) {
 	switch (p_evt->id) {
 	case FDS_EVT_INIT:
-		if (p_evt->result == FDS_SUCCESS) {
+		if (p_evt->result == NRF_SUCCESS) {
 			m_fds_initialized = true;
 		}
 		break;
 
 	case FDS_EVT_WRITE: {
-		if (p_evt->result == FDS_SUCCESS) {
+		if (p_evt->result == NRF_SUCCESS) {
 
 		}
 	} break;
 
 	case FDS_EVT_DEL_RECORD: {
-		if (p_evt->result == FDS_SUCCESS) {
+		if (p_evt->result == NRF_SUCCESS) {
 
 		}
 	} break;
@@ -68,7 +68,7 @@ void storage_init(void) {
 	fds_find_token_t  tok  = {0};
 	ret_code_t rc = fds_record_find(CONFIG_FILE, CONFIG_REC_KEY, &desc, &tok);
 
-	if (rc == FDS_SUCCESS) {
+	if (rc == NRF_SUCCESS) {
 		fds_flash_record_t config = {0};
 		fds_record_open(&desc, &config);
 		memcpy(&m_config, config.p_data, sizeof(config_data));
@@ -84,7 +84,7 @@ void storage_save_config(void) {
 	fds_find_token_t  tok  = {0};
 	ret_code_t rc = fds_record_find(CONFIG_FILE, CONFIG_REC_KEY, &desc, &tok);
 
-	if (rc == FDS_SUCCESS) {
+	if (rc == NRF_SUCCESS) {
 		fds_record_update(&desc, &m_config_record);
 	} else {
 		fds_record_write(&desc, &m_config_record);
